@@ -23,14 +23,13 @@ import javax.naming.StringRefAddr;
 
 public class Main {
 	
-	static int height = 600; // Height of the image
-	static int width = 600; // Width of the image 
+	static int height = 720; // Height of the image
+	static int width = 1200; // Width of the image 
 	// Remember to put the extension 
+	public static String imgname = "";
 	public static String path = ""; // Path where are located the file
-	public static String pathPick = "Secret code.txt"; // How is called the file where you take the original non encrypted code
-	public static String pathImg = "NewCode.png"; // How is called the image where you encrypt the code
-	public static String pathDecripted = "Unlocked Code.txt"; // How is called the file where you decrypt the code
-	public static int delay = 1; // How many letter per second will be delayed in order to not crash
+	
+	public static int delay = 0; // How many letter per second will be delayed in order to not crash
 	
 //  Original String message used as a test now unused
 //	public static String loremlipsus =
@@ -42,10 +41,56 @@ public class Main {
 //			+"Donec metus dui, malesuada eget congue in, vestibulum a ante. Quisque luctus nulla dictum pretium laoreet. Suspendisse ac ipsum velit. Morbi id orci ac ligula scelerisque congue sed non libero. Cras fermentum lorem ac massa tempus, in interdum tellus suscipit. Donec ultricies tincidunt volutpat. Praesent erat enim, faucibus vel erat in, malesuada rutrum velit. Etiam iaculis massa vel tristique bibendum."
 //			+"Donec eget ornare est, id sodales augue. Integer eleifend sagittis mi. Sed semper pulvinar porttitor. Nam ornare, lectus nec efficitur sagittis, metus quam consequat mi, at iaculis lectus eros eget justo. Nunc pretium.";		
 
+		// Fast way to convert Image into 2D RGB array 
+	   public static int[][] convertTo2DWithoutUsingGetRGB(BufferedImage image) {
+		   	  
+		      final byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+		      final int width = image.getWidth();
+		      final int height = image.getHeight(); 
+		      final boolean hasAlphaChannel = image.getAlphaRaster() != null;
+
+		      int[][] result = new int[height][width];
+		      if (hasAlphaChannel) {
+		         final int pixelLength = 4;
+		         for (int pixel = 0, row = 0, col = 0; pixel < pixels.length; pixel += pixelLength) {
+		            int argb = 0;
+		            argb += (((int) pixels[pixel] & 0xff) << 24); // alpha
+		            argb += ((int) pixels[pixel + 1] & 0xff); // blue
+		            argb += (((int) pixels[pixel + 2] & 0xff) << 8); // green
+		            argb += (((int) pixels[pixel + 3] & 0xff) << 16); // red
+		            result[row][col] = argb;
+		            col++;
+		            if (col == width) {
+		               col = 0;
+		               row++;
+		            }
+		         }
+		      } else {
+		         final int pixelLength = 3;
+		         for (int pixel = 0, row = 0, col = 0; pixel < pixels.length; pixel += pixelLength) {
+		            int argb = 0;
+		            argb += -16777216; // 255 alpha
+		            argb += ((int) pixels[pixel] & 0xff); // blue
+		            argb += (((int) pixels[pixel + 1] & 0xff) << 8); // green
+		            argb += (((int) pixels[pixel + 2] & 0xff) << 16); // red
+		            result[row][col] = argb;
+		            col++;
+		            if (col == width)
+		            {
+		               col = 0;
+		               row++;
+		            }
+		         }
+		      }
+
+		      return result;
+		 }
+	
+	
 	// Function that decrypt the image which path is path plus the name of the image therefore remember to put the image (that you want decrypt) in the path you used before.  
 	public static void decriptImage(){
 		// Load the image 
-		File f = new File(path+pathImg); 
+		File f = new File(path+imgname); 
         BufferedImage img = null;
 		try {
 			img = ImageIO.read(f);
@@ -53,64 +98,33 @@ public class Main {
 			e.printStackTrace();
 		}
 		// Determinate its pixels and put in an array
-		StringBuffer s = new StringBuffer(); // Creare a StringBuffer
-        byte[] pixels = ((DataBufferByte) img.getRaster().getDataBuffer()).getData(); // get pixels
-        // Check every pixel
-        for(int x = 0; x < pixels.length; x++){
-        	x=x+2; // +2 means that red & green are unused
-        	if(pixels[x] != 0){ // Remove the pixels with value = 0
-            	Color c = new Color(pixels[x]); // Convert pixel to color
-            	int red = c.getRed(); // Unused in the real code, It is used in debug
-            	int green = c.getGreen(); // Unused in the real code,It is used in debug
-            	int blue = c.getBlue();  // Where you're going to pick values
-            	char car = (char) blue;	// Convert to char
-            	s.append(car); // Put in the string buffer
-        	}
-        }
+		StringBuffer s = new StringBuffer(); // Create a StringBuffer
+		int[][] pixels = convertTo2DWithoutUsingGetRGB((BufferedImage) img); // Array of pixel
         
-        
-        System.out.println("Image decripted correctly"); // Debug
-        
-        File converted = new File(path+pathDecripted); // Create the file where its going to decrypt everything
-            if(!converted.exists()){ // If it doesn't exist create a new one
-            	try {
-					converted.createNewFile();
-				} catch (IOException e) {
-					e.printStackTrace();
+		for(int x = 0; x <= pixels.length-1; x++) // Get column
+		{
+			for(int y = 0; y <= pixels[0].length-1; y++) // Get row
+			{
+				Color c = new Color(pixels[x][y],true); // Get color
+				int red = c.getRed(); // Get red value
+				if(red != 0){ // If red isn't 0 go over
+					char car = (char) red; // Change red into a char
+					s.append(car);
 				}
-            }
-            // Writer of the code decripted
-            BufferedWriter writer = null; 
-            try
-            {
-                writer = new BufferedWriter( new FileWriter(converted));
-                writer.write(s.toString());
-            }
-            catch ( IOException e)
-            {
-            	e.printStackTrace();
-            }
-            finally
-            {
-                try
-                {
-                    if ( writer != null)
-                    writer.close( );
-                }
-                catch ( IOException e)
-                {
-                	e.printStackTrace();
-                }
-            }
+			}
+		}
+        
+       	Gui.add("Image decripted correctly"); // Debug
+        Gui.text.setText(s.toString());
 	}
 	// Function that encrypts data 
 	public static void encriptImage(byte[] data){
-		BufferedImage img = new BufferedImage(height, width, BufferedImage.TYPE_INT_RGB ); // Create an image
+		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB ); // Create an image
 
     	int x = 0; // Coordinates x
     	int y = 0; // Coordinates y
     	
-        File f = new File(path+pathImg); // Determinate where it will be saved the image
+        File f = new File(path+imgname); // Determinate where it will be saved the image
 
 		boolean loaded = data != null; // Check if data are loaded correctly
         System.out.println("Is data loaded? "+loaded);
@@ -129,30 +143,38 @@ public class Main {
             		
             		
             			//Debug of working
-            			if(x == (width-10)){
-            				System.out.println("Coord: "+x+" "+y);
-            			}
+        				Gui.add("Pixel coords x:"+x+" y:"+y);
             			// Algorithm of coordinates 
-            			if(x < (width-10)){ // Untill x is minor the width of the image minus 10 x add 1
+            			if(x < (height-1)){ // Untill x is minor the width of the image minus 10 x add 1
             				x++;
-            			}else if(x == (width-10)){ // if x is equal the width of the image minus 10 x add 1 to the y and set x = 0
+            			}else if(x == (height-1)){ // if x is equal the width of the image minus 10 x add 1 to the y and set x = 0
             				x=0;
             				y++;
-            			}else if(y < (height-10) && x < (width-10)){ //If the page is full write out of rage
-            				System.out.println("Out of rage! x: "+x+" y: "+y);
+            			}else if(x < (height-1) && y < (width-1)){ //If the page is full write out of rage
+            				Gui.add("Out of rage! x:"+x+" y:"+y);
             				break;
             			}
             			// Create a random function 
             			Random r = new Random();
             			// Put data in color blue and randomize red and green
             			if(data[i] > 0){ // Check that data > 0
-                            Color color = new Color(data[i],r.nextInt(254), r.nextInt(254)); 
+            				int rndg = r.nextInt(255);
+            				int problg = 0;
+            				if(rndg > 50 && rndg < 100){problg = r.nextInt(50);}
+            				if(rndg > 100){problg = r.nextInt(255);}
+            				
+            				int rndb = r.nextInt(255);
+            				int problb = 0;
+            				if(rndb > 50 && rndb < 100){problb = r.nextInt(50);}
+            				if(rndb > 100){problb = r.nextInt(255);}
+            				
+                            Color color = new Color(data[i],problb, problg, r.nextInt(255)); 
                             // Set the pixel with this color
                             img.setRGB(x, y, color.getRGB());
             			}
             			
                 }
-        		System.out.println("Finished encoding");
+        		Gui.add("Finished encoding");
         		// Write the image
         		ImageIO.write(img, "PNG", f);
                 
@@ -178,25 +200,8 @@ public class Main {
 	        scanner.close();
 	    }
 	}
-	
 	public static void main(String[] args) {
-			String scr = "";
-			try {
-				scr = readFile(path+pathPick);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			byte[] pos = scr.getBytes();
-			int highernumber = 0;
-			for(int x = 0;  x < pos.length; x++){
-				if(pos[x] >= highernumber){
-					highernumber = pos[x];
-				}
-			}
-			encriptImage(pos);
-//			decriptImage();
-			
-			System.out.println("High byte value: "+highernumber);
+		Gui g = new Gui();
+		g.initGui();
 	}
 }

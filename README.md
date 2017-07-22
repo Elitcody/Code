@@ -5,7 +5,7 @@ Another way to convert text in image's pixel
 # Gui 
 
 ## The gui was built in order to help converting text to image and image to text
-![Screenshoot](http://imgur.com/a/5GfKI)
+![](https://github.com/Elitcody/Code/blob/master/Preveiw.png)
 
 # Author
 
